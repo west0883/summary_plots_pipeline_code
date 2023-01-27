@@ -70,11 +70,16 @@ parameters.loop_variables.comparisons_categorical_both = parameters.comparisons_
 parameters.loop_variables.comparisons_continuous_both = parameters.comparisons_continuous_both;
 parameters.average_and_std_together = false;
 
+% *** MAKE SURE THESE ARE THE PRE-RENUMBERING VALUES***
+parameters.regions.M2 = 1:6; 
 parameters.regions.antLatM2 = 1:2;
 parameters.regions.remM2 = 3:6;
 parameters.regions.M1 = 7:10;
+parameters.regions.S1 = 11:14;
+parameters.regions.LP = 17:20;
+parameters.regions.MV = 21:28;
+parameters.regions.Rs = 29:31;
 
-%
 %% categoricals
 % average within region
 % average across animals
@@ -157,10 +162,106 @@ parameters.loop_list.iterators = {
                'comparison', {['loop_variables.comparisons_categorical_both(:).name']}, 'comparison_iterator' ;    
                };
 
+parameters.useBootstrapping = false;
+parameters.useNormalDistribution = true;
+parameters.useFDR = true; 
+parameters.shufflesDim = 2; 
+parameters.alphaValue = 0.05;
+parameters.twoTailed = true;
+
 % Inputs
 % data 
+parameters.loop_list.things_to_load.test_values.dir = {[parameters.dir_exper 'figure creation\summary plots\means by region\'], 'comparison', '\'};
+parameters.loop_list.things_to_load.test_values.filename= {'average_by_region.mat'};
+parameters.loop_list.things_to_load.test_values.variable= {'average_by_region'}; 
+parameters.loop_list.things_to_load.test_values.level = 'comparison';
 
-% null distributions 
+% null distributions  
+parameters.loop_list.things_to_load.null_distribution.dir = {[parameters.dir_exper 'figure creation\summary plots\means by region\'], 'comparison', '\'};
+parameters.loop_list.things_to_load.null_distribution.filename= {'average_by_region_randomPermutations.mat'};
+parameters.loop_list.things_to_load.null_distribution.variable= {'average_by_region'}; 
+parameters.loop_list.things_to_load.null_distribution.level = 'comparison';
 
 % Outputs
-% pvalues 
+parameters.loop_list.things_to_save.significance.dir = {[parameters.dir_exper 'figure creation\summary plots\means by region\'], 'comparison', '\'};
+parameters.loop_list.things_to_save.significance.filename= {'average_by_region_significance.mat'};
+parameters.loop_list.things_to_save.significance.variable= {'significance'}; 
+parameters.loop_list.things_to_save.significance.level = 'comparison';
+
+RunAnalysis({@SignificanceCalculation}, parameters);
+
+%% group together for putting into Prism
+
+parameters.loop_variables.figure_types = {'adjacent', 'direct', 'prepost'};
+
+comparisons.adjacent = {
+    'motorized_restvsstart_categorical';
+    'motorized_fstartvsrest_categorical';
+    'motorized_restvswalk';
+    'motorized_restvsstop_categorical';
+    'spontaneous_restvsstart_categorical';
+    'spontaneous_restvswalk';
+    'spontaneous_restvstop_categorical';
+    };
+  comparisons.direct = {
+    'rest_motorizedvsspon_categorical';
+    'start_motorizedvsspon_categorical';
+    'walk_motorizedvsspon_categorical';
+    'stop_motorizedvsspon_categorical';
+    };
+ comparisons.prepost = {
+    'wstartvswmaint';
+    'prewalkvsrest';
+    'motorized_restvsfinishedstop_categorical';
+    'spontaneous_restvsfinishedstop_categorical'
+    };
+
+% get out all comparison info
+for i = 1:numel(parameters.loop_variables.figure_types)
+    
+    figure_type = parameters.loop_variables.figure_types{i};
+
+    for ii = 1:numel(comparisons.(figure_type))
+        comparison = comparisons.(figure_type){ii};
+
+        % find that comparison in comparisons_categorical_both
+        index = find(strcmp({parameters.comparisons_categorical_both(:).name}, comparison));
+        parameters.comparisons.(figure_type)(ii, 1) = parameters.comparisons_categorical_both(index);
+       
+    end
+end 
+parameters.loop_variables.comparisons = parameters.comparisons;
+
+clear figure_type index i ii comparison comparisons;
+
+%%
+if isfield(parameters, 'loop_list')
+parameters = rmfield(parameters,'loop_list');
+end
+
+% Iterators
+parameters.loop_list.iterators = {
+               'figure_type', {'loop_variables.figure_types'}, 'figure_type_iterator'; 
+               'comparison', {'loop_variables.comparisons.', 'figure_type', '(:).name'}, 'comparison_iterator' ;    
+               };
+
+parameters.evaluation_instructions = {{'multiplier = parameters.comparisongit ss.', 'figure_type', '(', 'comparison_iterator', ').plotMultiplier;'...
+                                      'data_evaluated = parameters.data * multiplier;'}};
+parameters.concatDim = 2;
+parameters.concatenation_level = 'comparison';
+
+% Inputs
+parameters.loop_list.things_to_load.data.dir = {[parameters.dir_exper 'figure creation\summary plots\means by region\'], 'comparison', '\'};
+parameters.loop_list.things_to_load.data.filename= {'average_by_region.mat'};
+parameters.loop_list.things_to_load.data.variable= {'average_by_region'}; 
+parameters.loop_list.things_to_load.data.level = 'comparison';
+
+% Outputs
+parameters.loop_list.things_to_save.concatenated_data.dir = {[parameters.dir_exper 'figure creation\summary plots\means by region concatenated\']};
+parameters.loop_list.things_to_save.concatenated_data.filename= {'figure_type', '.mat'};
+parameters.loop_list.things_to_save.concatenated_data.variable= {'average_by_region'}; 
+parameters.loop_list.things_to_save.concatenated_data.level = 'figure_type';
+
+parameters.loop_list.things_to_rename = {{'data_evaluated', 'data'}};
+
+RunAnalysis({@EvaluateOnData, @ConcatenateData}, parameters);

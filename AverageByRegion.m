@@ -14,7 +14,7 @@ function [parameters] = AverageByRegion(parameters)
     
     % If not on null distributions
     if ~parameters.null_distribution_flag
-        data_out = NaN(numel(regions), 2);
+        data_out = NaN(numel(regions), 1);
     
         for regioni = 1: numel(regions)
     
@@ -25,12 +25,12 @@ function [parameters] = AverageByRegion(parameters)
              
             % average across mice
             data_out(regioni, 1) = mean(vals_inside, 2);
-            data_out(regioni, 2) = std(vals_inside, [], 2); 
+            %data_out(regioni, 2) = std(vals_inside, [], 2); 
         end
 
     % If on null distributions
     else
-        data_out = NaN(numel(regions), 2, size(data, 3));
+        data_out = NaN(numel(regions), size(data, 3));
 
         for regioni = 1: numel(regions)
     
@@ -40,11 +40,11 @@ function [parameters] = AverageByRegion(parameters)
             vals_inside = mean(data(parameters.regions.(region), :, :), 1);
              
             % average across mice
-            data_out(regioni, 1, :) = mean(vals_inside, 2);
-            data_out(regioni, 2, :) = std(vals_inside, [], 2); 
+            data_out(regioni, :) = squeeze(mean(vals_inside, 2));
+            %data_out(regioni, 2, :) = std(vals_inside, [], 2); 
         end
     end
-    
+
     parameters.data_out = data_out;
 
 end 
