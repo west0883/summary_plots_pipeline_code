@@ -70,18 +70,83 @@ parameters.loop_variables.comparisons_categorical_both = parameters.comparisons_
 parameters.loop_variables.comparisons_continuous_both = parameters.comparisons_continuous_both;
 parameters.average_and_std_together = false;
 
-parameters.regions.antM2 = 1:4;
-parameters.regions.postM2 = 5:6;
+parameters.regions.antLatM2 = 1:2;
+parameters.regions.remM2 = 3:6;
 parameters.regions.M1 = 7:10;
 
 %
-%% rest vs each
+%% categoricals
 % average within region
 % average across animals
-parameters.loop_variables.comparisons_base = {'_restvsstart_categorical';
-               '_restvswalk';
-               '_restvsstop_categorical';
-               };
+
+parameters.null_distribution_flag = false; 
+
+for categoryi = 1:numel(parameters.loop_variables.categories)
+    category = parameters.loop_variables.categories{categoryi};
+
+    if isfield(parameters, 'loop_list')
+    parameters = rmfield(parameters,'loop_list');
+    end
+    
+    % Iterators
+    parameters.loop_list.iterators = {
+                   'comparison', {['loop_variables.comparisons_categorical.' category '(:).name']}, 'comparison_iterator' ;    
+                   };
+    % Inputs
+    if strcmp(category, 'normal')
+    parameters.loop_list.things_to_load.data.dir = {[parameters.dir_exper 'PLSR\results\level 2 categorical\Ipsa Contra\'], 'comparison', '\'};
+    else
+        parameters.loop_list.things_to_load.data.dir = {[parameters.dir_exper 'PLSR Warning Periods\results\level 2 categorical\'], 'comparison', '\'};
+    end
+    
+    parameters.loop_list.things_to_load.data.filename= {'average_by_nodes_Cov.mat'};
+    parameters.loop_list.things_to_load.data.variable= {'average_by_nodes'}; 
+    parameters.loop_list.things_to_load.data.level = 'comparison';
+    
+    % Outputs
+    parameters.loop_list.things_to_save.data_out.dir = {[parameters.dir_exper 'figure creation\summary plots\means by region\'], 'comparison', '\'};
+    parameters.loop_list.things_to_save.data_out.filename= {'average_by_region.mat'};
+    parameters.loop_list.things_to_save.data_out.variable= {'average_by_region'}; 
+    parameters.loop_list.things_to_save.data_out.level = 'comparison';
+    
+    RunAnalysis({@AverageByRegion}, parameters);
+end 
+
+%% categorical, run on null distributions 
+
+parameters.null_distribution_flag = true;
+for categoryi = 1:numel(parameters.loop_variables.categories)
+    category = parameters.loop_variables.categories{categoryi};
+
+    if isfield(parameters, 'loop_list')
+    parameters = rmfield(parameters,'loop_list');
+    end
+    
+    % Iterators
+    parameters.loop_list.iterators = {
+                   'comparison', {['loop_variables.comparisons_categorical.' category '(:).name']}, 'comparison_iterator' ;    
+                   };
+    % Inputs
+    if strcmp(category, 'normal')
+    parameters.loop_list.things_to_load.data.dir = {[parameters.dir_exper 'PLSR\results\level 2 categorical\Ipsa Contra\'], 'comparison', '\'};
+    else
+        parameters.loop_list.things_to_load.data.dir = {[parameters.dir_exper 'PLSR Warning Periods\results\level 2 categorical\'], 'comparison', '\'};
+    end
+    
+    parameters.loop_list.things_to_load.data.filename= {'average_by_nodes_randomPermutations_Cov.mat'};
+    parameters.loop_list.things_to_load.data.variable= {'average_by_nodes'}; 
+    parameters.loop_list.things_to_load.data.level = 'comparison';
+    
+    % Outputs
+    parameters.loop_list.things_to_save.data_out.dir = {[parameters.dir_exper 'figure creation\summary plots\means by region\'], 'comparison', '\'};
+    parameters.loop_list.things_to_save.data_out.filename= {'average_by_region_randomPermutations.mat'};
+    parameters.loop_list.things_to_save.data_out.variable= {'average_by_region'}; 
+    parameters.loop_list.things_to_save.data_out.level = 'comparison';
+    
+    RunAnalysis({@AverageByRegion}, parameters);
+end 
+
+%% test significance based on null distrubution 
 
 if isfield(parameters, 'loop_list')
 parameters = rmfield(parameters,'loop_list');
@@ -89,23 +154,13 @@ end
 
 % Iterators
 parameters.loop_list.iterators = {
-               'comparison', {'loop_variables.comparisons_base.' category '(:).name'}, 'comparison_iterator' ;    
+               'comparison', {['loop_variables.comparisons_categorical_both(:).name']}, 'comparison_iterator' ;    
                };
+
 % Inputs
-parameters.loop_list.things_to_load.data.dir = {[parameters.dir_exper 'PLSR\results\level 2 categorical\Ipsa Contra\'], 'comparison', '\'};
-parameters.loop_list.things_to_load.data.filename= {'average_by_nodes_Cov.mat'};
-parameters.loop_list.things_to_load.data.variable= {'average_by_nodes'}; 
-parameters.loop_list.things_to_load.data.level = 'comparison';
+% data 
+
+% null distributions 
 
 % Outputs
- 
-  columns = {'antM2', 'postM2', 'M1'};    
-  T = table('VariableNames',columns);
-
-%% motorized vs spon
-comparisons_base = {'rest';
-               'start';
-               'walk';
-               'stop';
-               };
-
+% pvalues 
