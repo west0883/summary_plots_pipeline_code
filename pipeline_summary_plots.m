@@ -125,11 +125,16 @@ for categoryi = 1:numel(parameters.loop_variables.categories)
     parameters.loop_list.things_to_save.data_out.filename= {'average_by_region.mat'};
     parameters.loop_list.things_to_save.data_out.variable= {'average_by_region'}; 
     parameters.loop_list.things_to_save.data_out.level = 'comparison';
+
+    parameters.loop_list.things_to_save.all_mice.dir = {[parameters.dir_exper 'figure creation\summary plots\means by region\'], 'comparison', '\'};
+    parameters.loop_list.things_to_save.all_mice.filename= {'average_by_region_bymouse.mat'};
+    parameters.loop_list.things_to_save.all_mice.variable= {'average_by_region'}; 
+    parameters.loop_list.things_to_save.all_mice.level = 'comparison';
     
     RunAnalysis({@AverageByRegion}, parameters);
 end 
 
-%% categorical, run on null distributions 
+%% categorical, run on null distributions -- across and per mouse
 
 parameters.null_distribution_flag = true;
 for categoryi = 1:numel(parameters.loop_variables.categories)
@@ -160,8 +165,15 @@ for categoryi = 1:numel(parameters.loop_variables.categories)
     parameters.loop_list.things_to_save.data_out.variable= {'average_by_region'}; 
     parameters.loop_list.things_to_save.data_out.level = 'comparison';
     
+    parameters.loop_list.things_to_save.all_mice.dir = {[parameters.dir_exper 'figure creation\summary plots\means by region\'], 'comparison', '\'};
+    parameters.loop_list.things_to_save.all_mice.filename= {'average_by_region_bymouse_randomPermutations.mat'};
+    parameters.loop_list.things_to_save.all_mice.variable= {'average_by_region'}; 
+    parameters.loop_list.things_to_save.all_mice.level = 'comparison';
+    
     RunAnalysis({@AverageByRegion}, parameters);
 end 
+
+
 
 %% test significance based on null distrubution 
 
@@ -185,13 +197,13 @@ parameters.twoTailed = true;
 % data 
 parameters.loop_list.things_to_load.test_values.dir = {[parameters.dir_exper 'figure creation\summary plots\means by region\'], 'comparison', '\'};
 parameters.loop_list.things_to_load.test_values.filename= {'average_by_region.mat'};
-parameters.loop_list.things_to_load.test_values.variable= {'average_by_region'}; 
+parameters.loop_list.things_to_load.test_values.variable= {'average_by_region(:, 1)'}; 
 parameters.loop_list.things_to_load.test_values.level = 'comparison';
 
 % null distributions  
 parameters.loop_list.things_to_load.null_distribution.dir = {[parameters.dir_exper 'figure creation\summary plots\means by region\'], 'comparison', '\'};
 parameters.loop_list.things_to_load.null_distribution.filename= {'average_by_region_randomPermutations.mat'};
-parameters.loop_list.things_to_load.null_distribution.variable= {'average_by_region'}; 
+parameters.loop_list.things_to_load.null_distribution.variable= {'average_by_region(:, :, 1)'}; 
 parameters.loop_list.things_to_load.null_distribution.level = 'comparison';
 
 % Outputs
@@ -204,13 +216,16 @@ RunAnalysis({@SignificanceCalculation}, parameters);
 
 %% group together for putting into Prism
 
-parameters.loop_variables.figure_types = {'adjacent', 'direct', 'prepost'};
+parameters.loop_variables.figure_types = {'adjacent_motorized', 'adjacent_spontaneous', 'direct', 'prepost'};
 
-comparisons.adjacent = {
+comparisons.adjacent_motorized = {
     'motorized_restvsstart_categorical';
     'motorized_fstartvsrest_categorical';
     'motorized_restvswalk';
     'motorized_restvsstop_categorical';
+     };
+
+comparisons.adjacent_spontaneous = {
     'spontaneous_restvsstart_categorical';
     'spontaneous_restvswalk';
     'spontaneous_restvstop_categorical';
@@ -246,7 +261,7 @@ parameters.loop_variables.comparisons = parameters.comparisons;
 
 clear figure_type index i ii comparison comparisons;
 
-%%
+%% put together
 if isfield(parameters, 'loop_list')
 parameters = rmfield(parameters,'loop_list');
 end
@@ -257,8 +272,8 @@ parameters.loop_list.iterators = {
                'comparison', {'loop_variables.comparisons.', 'figure_type', '(:).name'}, 'comparison_iterator' ;    
                };
 
-parameters.evaluation_instructions = {{'multiplier = parameters.comparisongit ss.', 'figure_type', '(', 'comparison_iterator', ').plotMultiplier;'...
-                                      'data_evaluated = parameters.data * multiplier;'}};
+parameters.evaluation_instructions = {{'multiplier = parameters.comparisons.', 'figure_type', '(', 'comparison_iterator', ').plotMultiplier;'...
+                                      'data_evaluated = parameters.data(:,1) * multiplier;'}};
 parameters.concatDim = 2;
 parameters.concatenation_level = 'comparison';
 
@@ -270,6 +285,103 @@ parameters.loop_list.things_to_load.data.level = 'comparison';
 
 % Outputs
 parameters.loop_list.things_to_save.concatenated_data.dir = {[parameters.dir_exper 'figure creation\summary plots\means by region concatenated\']};
+parameters.loop_list.things_to_save.concatenated_data.filename= {'figure_type', '.mat'};
+parameters.loop_list.things_to_save.concatenated_data.variable= {'average_by_region'}; 
+parameters.loop_list.things_to_save.concatenated_data.level = 'figure_type';
+
+parameters.loop_list.things_to_rename = {{'data_evaluated', 'data'}};
+
+RunAnalysis({@EvaluateOnData, @ConcatenateData}, parameters);
+
+
+%% group together for Prism with each mouse data point included
+% if isfield(parameters, 'loop_list')
+% parameters = rmfield(parameters,'loop_list');
+% end
+% 
+% % Iterators
+% parameters.loop_list.iterators = {
+%                'figure_type', {'loop_variables.figure_types'}, 'figure_type_iterator'; 
+%                'comparison', {'loop_variables.comparisons.', 'figure_type', '(:).name'}, 'comparison_iterator' ;    
+%                };
+% 
+% parameters.evaluation_instructions = {{'multiplier = parameters.comparisons.', 'figure_type', '(', 'comparison_iterator', ').plotMultiplier;'...
+%                                        'data = reshape(transpose(parameters.data), 1, []);'...
+%                                         'data_evaluated = data * multiplier;'}};
+% parameters.concatDim = 1;
+% parameters.concatenation_level = 'comparison';
+% 
+% % Inputs
+% parameters.loop_list.things_to_load.data.dir = {[parameters.dir_exper 'figure creation\summary plots\means by region\'], 'comparison', '\'};
+% parameters.loop_list.things_to_load.data.filename= {'average_by_region_bymouse.mat'};
+% parameters.loop_list.things_to_load.data.variable= {'average_by_region'}; 
+% parameters.loop_list.things_to_load.data.level = 'comparison';
+% 
+% % Outputs
+% parameters.loop_list.things_to_save.concatenated_data.dir = {[parameters.dir_exper 'figure creation\summary plots\means by region concatenated by mouse\']};
+% parameters.loop_list.things_to_save.concatenated_data.filename= {'figure_type', '.mat'};
+% parameters.loop_list.things_to_save.concatenated_data.variable= {'average_by_region'}; 
+% parameters.loop_list.things_to_save.concatenated_data.level = 'figure_type';
+% 
+% parameters.loop_list.things_to_rename = {{'data_evaluated', 'data'}};
+% 
+% RunAnalysis({@EvaluateOnData, @ConcatenateData}, parameters);
+
+ if isfield(parameters, 'loop_list')
+parameters = rmfield(parameters,'loop_list');
+end
+
+% Iterators
+parameters.loop_list.iterators = {
+               'figure_type', {'loop_variables.figure_types'}, 'figure_type_iterator'; 
+               'comparison', {'loop_variables.comparisons.', 'figure_type', '(:).name'}, 'comparison_iterator' ;    
+               };
+
+parameters.evaluation_instructions = {{'multiplier = parameters.comparisons.', 'figure_type', '(', 'comparison_iterator', ').plotMultiplier;'...
+                                        'data_evaluated = parameters.data * multiplier;'}};
+parameters.concatDim = 2;
+parameters.concatenation_level = 'comparison';
+
+% Inputs
+parameters.loop_list.things_to_load.data.dir = {[parameters.dir_exper 'figure creation\summary plots\means by region\'], 'comparison', '\'};
+parameters.loop_list.things_to_load.data.filename= {'average_by_region_bymouse.mat'};
+parameters.loop_list.things_to_load.data.variable= {'average_by_region'}; 
+parameters.loop_list.things_to_load.data.level = 'comparison';
+
+% Outputs
+parameters.loop_list.things_to_save.concatenated_data.dir = {[parameters.dir_exper 'figure creation\summary plots\means by region concatenated by mouse\']};
+parameters.loop_list.things_to_save.concatenated_data.filename= {'figure_type', '.mat'};
+parameters.loop_list.things_to_save.concatenated_data.variable= {'average_by_region'}; 
+parameters.loop_list.things_to_save.concatenated_data.level = 'figure_type';
+
+parameters.loop_list.things_to_rename = {{'data_evaluated', 'data'}};
+
+RunAnalysis({@EvaluateOnData, @ConcatenateData}, parameters);
+
+%% Group for pasting into Prism for unpaired t-test
+ if isfield(parameters, 'loop_list')
+parameters = rmfield(parameters,'loop_list');
+end
+
+% Iterators
+parameters.loop_list.iterators = {
+               'figure_type', {'loop_variables.figure_types'}, 'figure_type_iterator'; 
+               'comparison', {'loop_variables.comparisons.', 'figure_type', '(:).name'}, 'comparison_iterator' ;    
+               };
+
+parameters.evaluation_instructions = {{'multiplier = parameters.comparisons.', 'figure_type', '(', 'comparison_iterator', ').plotMultiplier;'...
+                                        'data_evaluated = transpose(parameters.data(2:4, :)) * multiplier;'}};
+parameters.concatDim = 2;
+parameters.concatenation_level = 'comparison';
+
+% Inputs
+parameters.loop_list.things_to_load.data.dir = {[parameters.dir_exper 'figure creation\summary plots\means by region\'], 'comparison', '\'};
+parameters.loop_list.things_to_load.data.filename= {'average_by_region_bymouse.mat'};
+parameters.loop_list.things_to_load.data.variable= {'average_by_region'}; 
+parameters.loop_list.things_to_load.data.level = 'comparison';
+
+% Outputs
+parameters.loop_list.things_to_save.concatenated_data.dir = {[parameters.dir_exper 'figure creation\summary plots\means by region concatenated for t-tests\']};
 parameters.loop_list.things_to_save.concatenated_data.filename= {'figure_type', '.mat'};
 parameters.loop_list.things_to_save.concatenated_data.variable= {'average_by_region'}; 
 parameters.loop_list.things_to_save.concatenated_data.level = 'figure_type';
