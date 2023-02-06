@@ -75,10 +75,22 @@ parameters.regions.M2 = 1:6;
 parameters.regions.antLatM2 = 1:2;
 parameters.regions.remM2 = 3:6;
 parameters.regions.M1 = 7:10;
+parameters.regions.latM1 = 7:8;
+parameters.regions.medM1 = 9:10;
 parameters.regions.S1 = 11:14;
 parameters.regions.LP = 17:20;
 parameters.regions.MV = 21:28;
-parameters.regions.Rs = 29:31;
+parameters.regions.Rs = 29:32;
+
+% renumber the regions 
+load('Y:\Sarah\Analysis\Experiments\Random Motorized Treadmill\node_renumbering.mat')
+parameters.node_renumbering = node_renumbering;
+regions = fieldnames(parameters.regions);
+for i = 1:numel(regions)
+    region = regions{i};
+    parameters.regions.(region) = node_renumbering(parameters.regions.(region), 2);
+end
+clear node_renumbering regions region i 
 
 %% categoricals
 % average within region
